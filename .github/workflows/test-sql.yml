@@ -1,0 +1,25 @@
+# Runs every analysis query against the data on each push.
+# If a query breaks, this check turns red on GitHub.
+name: Test SQL queries
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  run-queries:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install DuckDB
+        run: pip install -r requirements.txt
+
+      - name: Run all 10 queries
+        run: python etl/run_queries.py

@@ -1,0 +1,8 @@
+{
+  "raw_rows": 1067371,
+  "sheet_overlap": 22523,
+  "non_product_or_invalid": 11930,
+  "exact_duplicates": 11792,
+  "clean_rows": 1021126,
+  "products": 4721
+}

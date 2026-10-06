@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Retail SQL Analytics — Ahmad Ammar</title>
+  <meta name="description" content="Ten SQL analyses of one million real online-retail sales lines (cohorts, RFM, Lorenz curve, market basket), run live in your browser with DuckDB-WASM.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230f0f0d'/%3E%3Crect x='14' y='34' width='8' height='16' rx='2' fill='%23f2efe8'/%3E%3Crect x='28' y='24' width='8' height='26' rx='2' fill='%23f2efe8'/%3E%3Crect x='42' y='14' width='8' height='36' rx='2' fill='%23f05423'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+
+  <!-- Loading screen: shown while DuckDB starts and the data downloads -->
+  <div class="loader" id="loader" role="status" aria-live="polite">
+    <div class="loader-card">
+      <div class="loader-mark" aria-hidden="true"><span></span><span></span><span></span></div>
+      <h2>Starting the database in your browser</h2>
+      <ol class="loader-steps">
+        <li data-step="engine">Loading DuckDB (WebAssembly)</li>
+        <li data-step="data">Downloading sales data <span class="loader-mb" id="loader-mb"></span></li>
+        <li data-step="tables">Building tables</li>
+        <li data-step="queries">Running 10 SQL queries</li>
+      </ol>
+      <div class="loader-bar"><div class="loader-fill" id="loader-fill"></div></div>
+      <p class="loader-error" id="loader-error" hidden></p>
+    </div>
+  </div>
+
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <a class="brand" href="#top"><span class="brand-dot"></span>Retail SQL Analytics</a>
+      <nav class="topnav" aria-label="Sections">
+        <a href="#overview">Overview</a>
+        <a href="#markets">Markets</a>
+        <a href="#customers">Customers</a>
+        <a href="#baskets">Baskets</a>
+        <a href="#playground">SQL Playground</a>
+      </nav>
+      <a class="gh-link" href="https://github.com/Z3US-23/retail-sql-analytics" target="_blank" rel="noopener">
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        <span>Code</span>
+      </a>
+    </div>
+  </header>
+
+  <main id="top">
+    <!-- Hero -->
+    <section class="hero wrap">
+      <p class="eyebrow">SQL · DuckDB · runs entirely in your browser</p>
+      <h1>A million sales lines,<br><em>queried live</em> as you watch.</h1>
+      <p class="deck">Two years of real transactions from a UK online gift wholesaler, cleaned with SQL and
+        analysed with ten SQL queries. There is no server: the whole database runs in this tab, so every
+        filter you change re-runs the SQL on the spot. Open the <em>SQL</em> tab on any chart to read the query behind it.</p>
+      <div class="engine-pill" id="engine-pill"><span class="pulse"></span><span id="engine-text">Starting DuckDB…</span></div>
+    </section>
+
+    <!-- Pipeline + cleaning funnel -->
+    <section class="wrap pipeline-band">
+      <ol class="pipeline">
+        <li><span class="pl-num">01</span><strong>Raw Excel</strong><small>2 sheets, UCI archive</small></li>
+        <li><span class="pl-num">02</span><strong>Clean with SQL</strong><small>etl/clean.sql in DuckDB</small></li>
+        <li><span class="pl-num">03</span><strong>Parquet</strong><small>5.4 MB, columnar</small></li>
+        <li><span class="pl-num">04</span><strong>DuckDB-WASM</strong><small>database in your browser</small></li>
+        <li><span class="pl-num">05</span><strong>10 SQL files</strong><small>→ these charts</small></li>
+      </ol>
+      <div class="funnel" id="funnel" aria-label="Data cleaning steps"></div>
+    </section>
+
+    <!-- Sticky filters -->
+    <div class="filters-wrap" id="filters">
+      <div class="wrap filters">
+        <label class="ctl">
+          <span class="ctl-label">Market</span>
+          <select id="f-market" disabled>
+            <option value="all">All markets</option>
+            <option value="uk">United Kingdom</option>
+            <option value="intl">Outside the UK</option>
+          </select>
+        </label>
+        <label class="ctl">
+          <span class="ctl-label">From</span>
+          <select id="f-from" disabled></select>
+        </label>
+        <label class="ctl">
+          <span class="ctl-label">To</span>
+          <select id="f-to" disabled></select>
+        </label>
+        <div class="presets" role="group" aria-label="Quick periods">
+          <button type="button" data-preset="all" class="chip is-on">All</button>
+          <button type="button" data-preset="2010" class="chip">2010</button>
+          <button type="button" data-preset="2011" class="chip">2011</button>
+        </div>
+        <button type="button" class="view-sql-btn" id="view-sql-btn" aria-expanded="false">
+          <span class="mono">{ }</span> Filter SQL
+        </button>
+        <span class="run-stats" id="run-stats"></span>
+      </div>
+      <div class="wrap view-sql" id="view-sql" hidden>
+        <p>Every chart reads from one view. Your filters rewrite it:</p>
+        <pre class="code" id="view-sql-code"></pre>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <section class="wrap section" id="overview">
+      <div class="section-head">
+        <p class="section-num">01 — Overview</p>
+        <h2>The business at a glance</h2>
+      </div>
+      <div class="kpis" id="kpis"></div>
+      <div class="grid grid-1" data-cards="trend"></div>
+    </section>
+
+    <section class="wrap section" id="markets">
+      <div class="section-head">
+        <p class="section-num">02 — Markets &amp; products</p>
+        <h2>Where, what and when people buy</h2>
+      </div>
+      <div class="grid grid-2" data-cards="countries products"></div>
+      <div class="grid grid-1" data-cards="hours"></div>
+    </section>
+
+    <section class="wrap section" id="customers">
+      <div class="section-head">
+        <p class="section-num">03 — Customers</p>
+        <h2>Who carries the shop, and who comes back</h2>
+        <p class="section-note">Customer analyses use lines with a customer ID. About 22% of lines (14% of revenue) have none and are left out of this section.</p>
+      </div>
+      <div class="grid grid-2" data-cards="lorenz rfm"></div>
+      <div class="grid grid-1" data-cards="cohorts"></div>
+    </section>
+
+    <section class="wrap section" id="baskets">
+      <div class="section-head">
+        <p class="section-num">04 — Baskets &amp; returns</p>
+        <h2>What sells together, and what comes back</h2>
+      </div>
+      <div class="grid grid-2" data-cards="basket returns"></div>
+    </section>
+
+    <!-- Playground -->
+    <section class="wrap section" id="playground">
+      <div class="section-head">
+        <p class="section-num">05 — Playground</p>
+        <h2>Write your own SQL</h2>
+        <p class="section-note">The full database is loaded in this tab. Try a sample or write your own query, then press
+          <kbd>Ctrl</kbd> + <kbd>Enter</kbd>. The <code>sales</code> view follows the filters above; <code>sales_all</code> is always the full table.</p>
+      </div>
+      <div class="pg">
+        <aside class="pg-schema" id="pg-schema" aria-label="Tables and columns"></aside>
+        <div class="pg-main">
+          <div class="pg-samples" id="pg-samples"></div>
+          <div class="pg-editor"><textarea id="pg-input" spellcheck="false"></textarea></div>
+          <div class="pg-actions">
+            <button type="button" class="btn-run" id="pg-run" disabled>▶ Run query</button>
+            <span class="pg-meta" id="pg-meta">Ctrl + Enter to run</span>
+            <button type="button" class="btn-ghost" id="pg-csv" hidden>Download CSV</button>
+          </div>
+          <div class="pg-result" id="pg-result"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer-inner">
+      <p>Built by <a href="https://z3us-23.github.io/Ahmad-Ammar.github.io/">Ahmad Ammar</a> · SQL with
+        <a href="https://duckdb.org/docs/api/wasm/overview">DuckDB-WASM</a>, charts with
+        <a href="https://echarts.apache.org/">Apache ECharts</a>.</p>
+      <p class="muted">Data: Chen, D. (2012). <em>Online Retail II</em>. UCI Machine Learning Repository,
+        <a href="https://doi.org/10.24432/C5CG6D">doi.org/10.24432/C5CG6D</a>, licensed CC BY 4.0. Prices in GBP.</p>
+    </div>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
+  <script type="module" src="assets/app.js"></script>
+</body>
+</html>

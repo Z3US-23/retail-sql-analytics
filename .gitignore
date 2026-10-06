@@ -1,0 +1,11 @@
+# Python
+.venv/
+__pycache__/
+
+# The raw 45 MB Excel file is re-downloaded by etl/build_data.py
+raw/
+
+# Local tooling
+.claude/
+*.duckdb
+*.duckdb.wal
