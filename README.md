@@ -6,7 +6,7 @@
 
 ![Dashboard overview](assets/img/overview.png)
 
-The data is two years of transactions (Dec 2009 – Dec 2011) from a UK online gift wholesaler.
+The data is two years of transactions (Dec 2009 – Dec 2011) from a UK online gift retailer (many of its customers are wholesalers).
 I cleaned it with SQL, then wrote ten SQL queries that each answer one business question.
 
 The dashboard has **no server**. [DuckDB-WASM](https://duckdb.org/docs/api/wasm/overview) runs a
@@ -116,5 +116,4 @@ https://doi.org/10.24432/C5CG6D, licensed [CC BY 4.0](https://creativecommons.or
 Prices are in GBP.
 
 Built by **Ahmad Ammar**, BS Economics, Forman Christian College, Lahore ·
-[Portfolio](https://z3us-23.github.io/Ahmad-Ammar.github.io/) ·
 Tools: SQL (DuckDB), Python, JavaScript, Apache ECharts.

@@ -22,12 +22,22 @@ gini AS (                         -- G = 2 * sum(i * x_i) / (n * sum(x_i)) - (n 
     SELECT 2 * sum(rn * revenue) / (max(n) * sum(revenue))
            - (max(n) + 1) / max(n) AS gini
     FROM ranked
+),
+top_shares AS (                   -- exact revenue share of the biggest 1%, 10%, 20%
+    SELECT
+        100 * sum(revenue) FILTER (WHERE rn > n * 0.99) / sum(revenue) AS top1,
+        100 * sum(revenue) FILTER (WHERE rn > n * 0.90) / sum(revenue) AS top10,
+        100 * sum(revenue) FILTER (WHERE rn > n * 0.80) / sum(revenue) AS top20
+    FROM ranked
 )
 SELECT
     round(100.0 * rn / n, 2)      AS pct_customers,
     round(100 * cum_share, 2)     AS pct_revenue,
     round(gini.gini, 3)           AS gini,
-    n                             AS customers
-FROM ranked, gini
+    n                             AS customers,
+    round(t.top1, 1)              AS top1_pct,
+    round(t.top10, 1)             AS top10_pct,
+    round(t.top20, 1)             AS top20_pct
+FROM ranked, gini, top_shares t
 WHERE rn % greatest(n // 200, 1) = 0 OR rn = n     -- ~200 points is enough to draw
 ORDER BY rn;

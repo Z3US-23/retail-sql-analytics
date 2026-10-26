@@ -277,7 +277,7 @@ export const CARDS = [
       if (!rows.length) return null;
       const pts = [[0, 0], ...rows.map((r) => [r.pct_customers, r.pct_revenue])];
       const at = (x) => pts.reduce((a, b) => (Math.abs(b[0] - x) < Math.abs(a[0] - x) ? b : a))[1];
-      const top20 = 100 - at(80);
+      const top20 = rows[0].top20_pct;   // exact share from SQL; the plotted points are a sample
       return {
         ...base(),
         grid: { left: 8, right: 16, top: 16, bottom: 30, containLabel: true },
@@ -331,10 +331,8 @@ export const CARDS = [
     },
     insight(rows) {
       if (!rows.length) return "";
-      const pts = rows.map((r) => [r.pct_customers, r.pct_revenue]);
-      const at = (x) => pts.reduce((a, b) => (Math.abs(b[0] - x) < Math.abs(a[0] - x) ? b : a))[1];
-      const g = rows[0].gini;
-      return `The top 10% of customers bring in <strong>${pct(100 - at(90), 0)}</strong> of revenue, and the top 1% alone bring ${pct(100 - at(99), 0)}. `
+      const { gini: g, top1_pct: top1, top10_pct: top10 } = rows[0];   // exact shares, computed in SQL
+      return `The top 10% of customers bring in <strong>${pct(top10, 0)}</strong> of revenue, and the top 1% alone bring ${pct(top1, 0)}. `
         + `A Gini coefficient of <strong>${g.toFixed(2)}</strong> (0 = everyone spends the same, 1 = one customer buys everything) is higher than the income Gini of any country. `
         + `Keeping a few hundred large accounts happy matters more than anything else.`;
     },
